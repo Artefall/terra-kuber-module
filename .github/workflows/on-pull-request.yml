@@ -1,0 +1,56 @@
+name: "On pull request action"
+
+on:
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  TerraformValidation:
+    name: Validate terraform modules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v1.1.0
+        with:
+          terragrunt_version: "latest"
+
+      - name: Check terraform formating
+        run: terragrunt run-all fmt -check
+
+      - name: Validate terraform modules
+        run: terragrunt run-all validate
+
+  DocumentationGeneration:
+    name: "Generation of documentation for every module"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        modules-paths: ["pptp_vpn", "wireguard_vpn"]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.ref }}
+        
+    - name: Render terraform docs inside the USAGE.md and push changes back to PR branch
+      uses: terraform-docs/gh-actions@v0.11.0
+      with:
+        working-dir: ${{ matrix.modules-paths }}
+        output-file: USAGE.md
+        output-method: inject
+        git-push: "true"
+  
+  HelmChartsValidation:
+    name: "Helm charts validation"
+    runs-on: ubuntu-latest
+    steps: 
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: "Validate helm charts"
+      run: echo "Stub"
